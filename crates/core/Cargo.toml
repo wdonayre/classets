@@ -1,0 +1,10 @@
+[package]
+name = "classets-core"
+description = "CLASSETS sync engine: local index, change detection, transfers and direct sync"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]

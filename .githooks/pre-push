@@ -1,0 +1,29 @@
+#!/bin/sh
+# CLASSETS push guard: refuse to push any commit authored or committed by someone other
+# than wdonayre, or carrying an attribution trailer.
+
+zero=0000000000000000000000000000000000000000
+status=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" = "$zero" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  bad="$(git log --format='%H %an <%ae> | %cn <%ce>' "$range" | grep -viE '^[0-9a-f]+ wdonayre <(2247980\+wdonayre@users\.noreply\.github\.com|wdonayredroid@gmail\.com)> \| wdonayre <(2247980\+wdonayre@users\.noreply\.github\.com|wdonayredroid@gmail\.com)>$')"
+  if [ -n "$bad" ]; then
+    echo "pre-push: these commits are not authored and committed by wdonayre:" >&2
+    echo "$bad" >&2
+    status=1
+  fi
+
+  if git log --format='%B' "$range" | grep -qiE '^co-authored-by:|generated with|claude|anthropic|wdonayredilate'; then
+    echo "pre-push: a commit message carries a co-author / generated-by line or a blocked name." >&2
+    status=1
+  fi
+done
+
+exit $status

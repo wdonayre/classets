@@ -1,0 +1,23 @@
+[package]
+name = "classets-desktop"
+description = "CLASSETS desktop app: syncs files to your cloud and straight to your other devices"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+# The `_lib` suffix keeps the lib name distinct from the bin name (a Windows quirk).
+name = "classets_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+classets-core = { path = "../crates/core" }
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

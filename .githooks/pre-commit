@@ -1,0 +1,28 @@
+#!/bin/sh
+# CLASSETS identity guard: only the GitHub account `wdonayre` may author or commit here.
+# Enable once per clone:  git config core.hooksPath .githooks
+
+ALLOWED_NAME="wdonayre"
+ALLOWED_EMAILS="2247980+wdonayre@users.noreply.github.com wdonayredroid@gmail.com"
+
+name="$(git config user.name)"
+email="$(git config user.email)"
+
+ok_email=0
+for e in $ALLOWED_EMAILS; do
+  [ "$email" = "$e" ] && ok_email=1
+done
+
+if [ "$name" != "$ALLOWED_NAME" ] || [ "$ok_email" -ne 1 ]; then
+  echo "pre-commit: refusing commit as '$name <$email>'." >&2
+  echo "This repo only accepts commits from wdonayre. Set it with:" >&2
+  echo "  git config user.name wdonayre" >&2
+  echo "  git config user.email 2247980+wdonayre@users.noreply.github.com" >&2
+  exit 1
+fi
+
+case "$(printf '%s %s' "$GIT_AUTHOR_NAME" "$GIT_AUTHOR_EMAIL" | tr '[:upper:]' '[:lower:]')" in
+  *dilate*) echo "pre-commit: author override mentions 'dilate'; refusing." >&2; exit 1 ;;
+esac
+
+exit 0

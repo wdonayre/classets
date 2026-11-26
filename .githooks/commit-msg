@@ -1,0 +1,13 @@
+#!/bin/sh
+# CLASSETS attribution guard: no co-author or generated-by lines, no Claude/Anthropic or
+# wdonayredilate mentions in commit messages.
+
+msg_file="$1"
+
+if grep -qiE '^co-authored-by:|generated with|claude|anthropic|wdonayredilate' "$msg_file"; then
+  echo "commit-msg: the message contains a co-author / generated-by line or a blocked name." >&2
+  echo "Remove it; this repo only carries wdonayre's own commits." >&2
+  exit 1
+fi
+
+exit 0

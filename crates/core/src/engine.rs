@@ -422,6 +422,11 @@ impl Engine {
         })
     }
 
+    /// Sign this device out: forget its key, token and index. Synced files stay on disk.
+    pub fn sign_out(&self) -> Result<(), EngineError> {
+        self.handle_revoked(false)
+    }
+
     /// Revoked: drop secrets and index; with `wipe`, also delete the sync root's contents.
     fn handle_revoked(&self, wipe: bool) -> Result<(), EngineError> {
         if wipe && self.config.sync_root.is_dir() {

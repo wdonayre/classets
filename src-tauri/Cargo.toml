@@ -1,6 +1,6 @@
 [package]
 name = "classets-desktop"
-description = "CLASSETS desktop app: syncs files to your cloud and straight to your other devices"
+description = "CLASSETS app: syncs files to your cloud and straight to your other devices"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -17,7 +17,16 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 classets-core = { path = "../crates/core" }
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tokio = { version = "1", features = ["sync", "fs"] }
+sha2 = "0.11"
+hex = "0.4"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+gethostname = "1"
+
+# Device secrets go to the OS keychain where one is always available.
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+classets-core = { path = "../crates/core", features = ["keyring"] }

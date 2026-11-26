@@ -116,8 +116,11 @@ regardless of device sync rules (`hidden` excluded):
 ```json
 { "path": "Clients", "folders": [ {"name":"Alab Apparel","path":"Clients/Alab Apparel"} ],
   "files": [ {"name":"cover.jpg","path":"…","size":1,"version_id":88,
-              "modified_at":"…","thumb_url":"…|null"} ] }
+              "modified_at":"…","thumb_url":"…|null"} ],
+  "can_upload": true }
 ```
+`thumb_url` is a signed link valid for one hour. Folders with travel `direct_only` refuse
+cloud uploads from desktops with `403 {"error":"direct_only"}` (direct sync is not built yet).
 Uploads from the phone use `/files/intent` + `/files/commit` with `base_version_id: null`.
 
 `GET /pairings/pending` (owner/admin) → `{ "pairings": [ {"user_code","name","os","kind","requested_by","created_at"} ] }`

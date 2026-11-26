@@ -301,6 +301,9 @@ pub struct Browse {
     pub folders: Vec<BrowseFolder>,
     #[serde(default)]
     pub files: Vec<BrowseFile>,
+    /// Whether this person may upload into `path`.
+    #[serde(default)]
+    pub can_upload: bool,
 }
 
 /// One entry of `GET /pairings/pending`.

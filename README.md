@@ -7,7 +7,10 @@ Cloudflare R2 bucket, or straight to your other devices. A separate web app deci
 see which folder and which devices may hold it; this repo is the desktop app and its sync
 engine.
 
-> Status: early scaffold. Nothing syncs yet.
+> Status: working first version. Desktop sync (upload, download, edits, deletes, conflict
+> copies, revoke with wipe) works end to end against `classets-web`. The same app runs on
+> iOS and Android as a companion: browse, open, upload from the phone, approve devices.
+> Not built yet: direct device-to-device sync, "on demand" placeholders, signed installers.
 
 ## Stack
 
@@ -34,6 +37,28 @@ pnpm install
 pnpm tauri dev          # run the app
 cargo test --workspace  # engine tests
 pnpm tauri build        # installers for the current OS
+```
+
+### Try it against a local web app
+
+Run `classets-web` locally (`php artisan serve`), create an account, then start the app,
+enter `http://127.0.0.1:8000` as the server, and approve the code it shows at `/approve`.
+Without the GUI, the dev CLI does the same:
+
+```bash
+cargo run -p classets-core --example classets_dev -- pair --server http://127.0.0.1:8000 --root ~/CLASSETS-test --data ~/.classets-test --name TEST-PC
+cargo run -p classets-core --example classets_dev -- sync --data ~/.classets-test
+```
+
+### Mobile (iOS and Android)
+
+The phone app is the same Tauri project (`src-tauri/gen/apple`, `src-tauri/gen/android`).
+Phones never keep folders in sync; they browse, open, upload and approve.
+
+```bash
+pnpm tauri ios dev                      # iOS Simulator (needs Xcode + CocoaPods)
+pnpm tauri ios build --debug --target aarch64-sim
+pnpm tauri android dev                  # needs ANDROID_HOME and NDK_HOME
 ```
 
 ## Security model (short)

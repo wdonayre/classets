@@ -4,7 +4,7 @@ export interface SyncReport { uploaded: number; downloaded: number; deleted: num
 export interface EngineStatus { paired: boolean; device_id: string | null; last_sync: string | null; last_report: SyncReport | null; last_error: string | null }
 export interface Me { device: { id: string; name: string; status: string; kind: string }; user: { id: number; name: string; email: string }; workspace: { id: number; name: string }; role: string }
 export interface UiState {
-    configured: boolean; paired: boolean; syncing: boolean; paused: boolean; os: string; mobile: boolean;
+    starting: boolean; configured: boolean; paired: boolean; syncing: boolean; paused: boolean; os: string; mobile: boolean;
     server_url: string | null; device_name: string | null; sync_root: string | null;
     default_device_name: string; default_sync_root: string;
     status: EngineStatus | null; me: Me | null; log: { at: string; text: string; ok: boolean }[];
@@ -31,6 +31,7 @@ export const api = {
     uploadBytes: (folder: string, name: string, bytes: number[]) => invoke<string>('upload_bytes', { folder, name, bytes }),
     pending: () => invoke<PendingPairing[]>('pending_pairings'),
     decide: (code: string, approve: boolean) => invoke<void>('decide_pairing', { code, approve }),
+    lookup: (code: string) => invoke<PendingPairing>('lookup_pairing', { code }),
     signOut: () => invoke<void>('sign_out'),
 };
 

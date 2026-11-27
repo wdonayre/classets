@@ -112,9 +112,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 engine.config().sync_root.display()
             );
             engine
-                .run_loop(async {
-                    let _ = tokio::signal::ctrl_c().await;
-                })
+                .run_loop(
+                    async {
+                        let _ = tokio::signal::ctrl_c().await;
+                    },
+                    |r| eprintln!("{}", serde_json::to_string(r).unwrap_or_default()),
+                )
                 .await?;
             println!("{}", serde_json::to_string_pretty(&engine.status())?);
         }

@@ -583,6 +583,17 @@ impl ApiClient {
         Ok(r.pairings)
     }
 
+    /// `GET /pairings/{user_code}`: which device a typed code belongs to (owner/admin).
+    pub async fn lookup_pairing(&self, user_code: &str) -> Result<PendingPairing, ApiError> {
+        self.call(
+            Method::GET,
+            &format!("pairings/{}", encode_segment(user_code)),
+            &[],
+            None,
+        )
+        .await
+    }
+
     /// `POST /pairings/{user_code}/approve`; returns the new device id.
     pub async fn approve_pairing(&self, user_code: &str) -> Result<String, ApiError> {
         let r: ApproveResponse = self

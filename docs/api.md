@@ -124,4 +124,8 @@ cloud uploads from desktops with `403 {"error":"direct_only"}` (direct sync is n
 Uploads from the phone use `/files/intent` + `/files/commit` with `base_version_id: null`.
 
 `GET /pairings/pending` (owner/admin) → `{ "pairings": [ {"user_code","name","os","kind","requested_by","created_at"} ] }`
-`POST /pairings/{user_code}/approve` → `{ "device_id": "…" }` · `POST /pairings/{user_code}/deny`.
+`GET /pairings/{user_code}` (owner/admin) → the same fields for one code, so a phone can show
+which device it is before approving. Works for a member's request in this workspace or a fresh
+code shown on a device in front of the owner/admin; anything else is `404 not_found`.
+`POST /pairings/{user_code}/approve` → `{ "device_id": "…" }` (a fresh code becomes the approver's
+own device; a member's request stays theirs) · `POST /pairings/{user_code}/deny`.

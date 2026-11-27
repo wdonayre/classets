@@ -20,7 +20,7 @@ use crate::api::{
 use crate::crypto::{CryptoError, DeviceKey};
 use crate::index::{FileRow, Index};
 use crate::scan::{self, Known, LocalFile, abs_path, normalize, rel_path};
-use crate::secrets::{FileStore, SecretError, SecretStore, keys};
+use crate::secrets::{CachedStore, FileStore, SecretError, SecretStore, keys};
 
 const CURSOR_KEY: &str = "cursor";
 const LAST_SYNC_KEY: &str = "last_sync";
@@ -179,6 +179,7 @@ impl Engine {
         config: EngineConfig,
         secrets: Box<dyn SecretStore>,
     ) -> Result<Self, EngineError> {
+        let secrets: Box<dyn SecretStore> = Box::new(CachedStore::new(secrets));
         std::fs::create_dir_all(&config.data_dir)?;
         let index = Index::open(&config.data_dir.join("index.db"))?;
         let http = reqwest::Client::builder()
@@ -342,7 +343,12 @@ impl Engine {
 
     /// Syncs, waits for a file change (debounced) or 30 s, and repeats until `shutdown`
     /// resolves. Sends a heartbeat after each pass. Returns on shutdown, unpairing or revoke.
-    pub async fn run_loop(&self, shutdown: impl Future<Output = ()>) -> Result<(), EngineError> {
+    /// `on_report` gets every pass that moved something or hit a problem, so a UI can show it.
+    pub async fn run_loop(
+        &self,
+        shutdown: impl Future<Output = ()>,
+        on_report: impl Fn(&SyncReport),
+    ) -> Result<(), EngineError> {
         use notify::Watcher as _;
         tokio::pin!(shutdown);
         std::fs::create_dir_all(&self.config.sync_root)?;
@@ -365,7 +371,11 @@ impl Engine {
 
         loop {
             match self.sync_once().await {
-                Ok(_) => {}
+                Ok(r) => {
+                    if r != SyncReport::default() {
+                        on_report(&r);
+                    }
+                }
                 Err(e @ (EngineError::Revoked { .. } | EngineError::NotPaired)) => return Err(e),
                 Err(_) => {} // recorded in status().last_error; retry next round
             }

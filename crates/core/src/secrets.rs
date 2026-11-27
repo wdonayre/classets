@@ -41,6 +41,44 @@ pub trait SecretStore: Send + Sync {
     fn delete(&self, key: &str) -> Result<(), SecretError>;
 }
 
+/// Keeps what a store returned in memory, so the engine does not go back to the OS keychain
+/// (which can block on a system prompt) on every request. Writes go straight through.
+pub struct CachedStore {
+    inner: Box<dyn SecretStore>,
+    cache: Mutex<BTreeMap<String, Option<String>>>,
+}
+
+impl CachedStore {
+    pub fn new(inner: Box<dyn SecretStore>) -> Self {
+        Self { inner, cache: Mutex::new(BTreeMap::new()) }
+    }
+}
+
+impl SecretStore for CachedStore {
+    fn get(&self, key: &str) -> Result<Option<String>, SecretError> {
+        if let Some(v) = self.cache.lock().unwrap_or_else(|e| e.into_inner()).get(key) {
+            return Ok(v.clone());
+        }
+        let v = self.inner.get(key)?;
+        self.cache.lock().unwrap_or_else(|e| e.into_inner()).insert(key.to_string(), v.clone());
+        Ok(v)
+    }
+
+    fn set(&self, key: &str, value: &str) -> Result<(), SecretError> {
+        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        self.inner.set(key, value)?;
+        cache.insert(key.to_string(), Some(value.to_string()));
+        Ok(())
+    }
+
+    fn delete(&self, key: &str) -> Result<(), SecretError> {
+        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        self.inner.delete(key)?;
+        cache.insert(key.to_string(), None);
+        Ok(())
+    }
+}
+
 /// Secrets in a JSON file (`secrets.json` in the engine's data dir).
 pub struct FileStore {
     path: PathBuf,
@@ -171,6 +209,33 @@ impl SecretStore for KeyringStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Counts reads so the cache can be checked.
+    struct Counting(FileStore, std::sync::atomic::AtomicUsize);
+    impl SecretStore for Counting {
+        fn get(&self, k: &str) -> Result<Option<String>, SecretError> {
+            self.1.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            self.0.get(k)
+        }
+        fn set(&self, k: &str, v: &str) -> Result<(), SecretError> { self.0.set(k, v) }
+        fn delete(&self, k: &str) -> Result<(), SecretError> { self.0.delete(k) }
+    }
+
+    #[test]
+    fn cached_store_reads_each_key_once_and_writes_through() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = CachedStore::new(Box::new(Counting(FileStore::in_dir(dir.path()), Default::default())));
+        assert_eq!(store.get("token").unwrap(), None);
+        assert_eq!(store.get("token").unwrap(), None);
+        store.set("token", "abc").unwrap();
+        assert_eq!(store.get("token").unwrap().as_deref(), Some("abc"));
+        store.delete("token").unwrap();
+        assert_eq!(store.get("token").unwrap(), None);
+        // The file really changed (write-through).
+        assert_eq!(FileStore::in_dir(dir.path()).get("token").unwrap(), None);
+        store.set("token", "xyz").unwrap();
+        assert_eq!(FileStore::in_dir(dir.path()).get("token").unwrap().as_deref(), Some("xyz"));
+    }
 
     #[test]
     fn file_store_round_trip() {

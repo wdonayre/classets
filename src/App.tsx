@@ -57,12 +57,12 @@ function Setup({ s, onDone }: { s: UiState; onDone: () => void }) {
                         }
                     }}
                 >
-                    <label className="lbl" htmlFor="server">CLASSETS server<input id="server" className="inp mono" value={server} onChange={(e) => setServer(e.target.value)} autoCapitalize="off" autoCorrect="off" /></label>
-                    <label className="lbl" htmlFor="name">Name of this {s.mobile ? 'phone' : 'device'}<input id="name" className="inp" value={name} onChange={(e) => setName(e.target.value)} /></label>
+                    <label className="lbl" htmlFor="server">CLASSETS server<input id="server" className="inp mono" value={server} onChange={(e) => setServer(e.target.value)} autoCapitalize="off" autoCorrect="off" spellCheck={false} /></label>
+                    <label className="lbl" htmlFor="name">Name of this {s.mobile ? 'phone' : 'device'}<input id="name" className="inp" value={name} onChange={(e) => setName(e.target.value)} autoCorrect="off" spellCheck={false} /></label>
                     {!s.mobile && (
                         <label className="lbl" htmlFor="root">
                             Sync folder on this computer
-                            <input id="root" className="inp mono" value={root} onChange={(e) => setRoot(e.target.value)} />
+                            <input id="root" className="inp mono" value={root} onChange={(e) => setRoot(e.target.value)} autoCapitalize="off" autoCorrect="off" spellCheck={false} />
                         </label>
                     )}
                     {error && <p className="err">{error}</p>}
@@ -76,15 +76,19 @@ function Setup({ s, onDone }: { s: UiState; onDone: () => void }) {
 function Pair({ s, onPaired, onBack }: { s: UiState; onPaired: () => void; onBack: () => void }) {
     const [code, setCode] = useState<{ user_code: string; verification_url: string; interval: number } | null>(null);
     const [msg, setMsg] = useState('');
+    const [loading, setLoading] = useState(true);
     const started = useRef(false);
 
     const start = useCallback(async () => {
         setMsg('');
+        setLoading(true);
         try {
             const c = await api.pairStart();
             setCode(c);
         } catch (e) {
             setMsg(String(e));
+        } finally {
+            setLoading(false);
         }
     }, []);
 
@@ -130,6 +134,8 @@ function Pair({ s, onPaired, onBack }: { s: UiState; onPaired: () => void; onBac
                         <p className="sub row"><span className="dot pulse" />Waiting for approval…</p>
                         <button type="button" className="btn btn-p btn-lg" onClick={() => openUrl(code.verification_url)}>Open the approve page</button>
                     </>
+                ) : loading ? (
+                    <p className="sub row"><span className="dot pulse" />Getting a code…</p>
                 ) : (
                     <>
                         {msg && <p className="err">{msg}</p>}
@@ -141,6 +147,36 @@ function Pair({ s, onPaired, onBack }: { s: UiState; onPaired: () => void; onBac
             </section>
         </div>
     );
+}
+
+/** Signing out means pairing again, so it takes a second tap. */
+function SignOutButton({ label, onDone }: { label: string; onDone: () => void }) {
+    const [armed, setArmed] = useState(false);
+    useEffect(() => {
+        if (!armed) return;
+        const t = setTimeout(() => setArmed(false), 5000);
+        return () => clearTimeout(t);
+    }, [armed]);
+    return (
+        <button
+            type="button"
+            className="btn btn-d"
+            onClick={async () => {
+                if (!armed) return setArmed(true);
+                await api.signOut();
+                onDone();
+            }}
+        >
+            {armed ? 'Tap again to sign out. You will need to pair again.' : label}
+        </button>
+    );
+}
+
+/** Plain words for engine errors a person can act on. */
+function friendlyError(e: string): string {
+    if (/unauthori[sz]ed/i.test(e)) return 'The server no longer accepts this device. Sign it out under Settings and pair it again.';
+    if (/error sending request|connect|dns|timed out/i.test(e)) return "Can't reach the CLASSETS server. Files will sync when it's back.";
+    return e;
 }
 
 // ---- Desktop ----------------------------------------------------------------------------------
@@ -186,7 +222,7 @@ function Desktop({ s, refresh }: { s: UiState; refresh: () => void }) {
                             </button>
                             <button type="button" className="btn" onClick={async () => { await api.setPaused(!s.paused); refresh(); }}>{s.paused ? 'Resume' : 'Pause'}</button>
                         </div>
-                        {s.status?.last_error && <p className="err">{s.status.last_error}</p>}
+                        {s.status?.last_error && <p className="err">{friendlyError(s.status.last_error)}</p>}
                         <h2>Recent activity</h2>
                         <div className="card list">
                             {s.log.length === 0 && <div className="list-row sub">Nothing yet. Files you put in {s.sync_root} sync automatically.</div>}
@@ -230,7 +266,7 @@ function Desktop({ s, refresh }: { s: UiState; refresh: () => void }) {
                             <div className="list-row"><span className="sub" style={{ width: 140 }}>Device ID</span><span className="mono">{s.status?.device_id}</span></div>
                         </div>
                         <p className="sup">Closing the window keeps CLASSETS syncing in the tray. Use the tray menu to quit.</p>
-                        <button type="button" className="btn btn-d" onClick={async () => { await api.signOut(); refresh(); }}>Sign this device out</button>
+                        <SignOutButton label="Sign this device out" onDone={refresh} />
                     </>
                 )}
             </main>
@@ -245,6 +281,9 @@ function Mobile({ s, refresh }: { s: UiState; refresh: () => void }) {
     const [path, setPath] = useState('');
     const [data, setData] = useState<Browse | null>(null);
     const [pending, setPending] = useState<PendingPairing[]>([]);
+    const [typed, setTyped] = useState('');
+    const [found, setFound] = useState<PendingPairing | null>(null);
+    const [codeMsg, setCodeMsg] = useState('');
     const [msg, setMsg] = useState('');
     const input = useRef<HTMLInputElement>(null);
     const canApprove = s.me?.role === 'owner' || s.me?.role === 'admin';
@@ -345,7 +384,50 @@ function Mobile({ s, refresh }: { s: UiState; refresh: () => void }) {
                                 </div>
                             ))}
                         </div>
-                        <p className="sup">Devices that members ask for show up here. Codes shown on a device can also be approved on the web.</p>
+                        <p className="sup">Devices that members ask for show up here.</p>
+                        {canApprove && (
+                            <>
+                                <h2>Approve a code</h2>
+                                <p className="sub">Type the code a new device is showing. Only approve if that device is in front of you.</p>
+                                {!found ? (
+                                    <form
+                                        className="row"
+                                        onSubmit={async (e) => {
+                                            e.preventDefault();
+                                            setCodeMsg('');
+                                            try {
+                                                setFound(await api.lookup(typed.trim()));
+                                            } catch {
+                                                setCodeMsg('No device is waiting with that code. Check it, or get a new one on the device.');
+                                            }
+                                        }}
+                                    >
+                                        <input className="inp mono" style={{ flex: 1, textTransform: 'uppercase' }} placeholder="KQ7M-4TZP" value={typed}
+                                            onChange={(e) => setTyped(e.target.value)} autoCapitalize="characters" autoCorrect="off" spellCheck={false} aria-label="Code on the device" />
+                                        <button type="submit" className="btn btn-p" disabled={typed.trim().length < 8}>Check</button>
+                                    </form>
+                                ) : (
+                                    <div className="card list">
+                                        <div className="list-row" style={{ flexWrap: 'wrap' }}>
+                                            <span style={{ flex: '1 1 160px' }}>
+                                                <span className="h3">{found.name}</span>
+                                                <span className="sup block">{found.os} · code <span className="mono">{found.user_code}</span></span>
+                                            </span>
+                                            <button type="button" className="btn btn-p" onClick={async () => {
+                                                try { await api.decide(found.user_code, true); setCodeMsg(`${found.name} is approved.`); }
+                                                catch (e) { setCodeMsg(String(e)); }
+                                                setFound(null); setTyped('');
+                                            }}>Approve</button>
+                                            <button type="button" className="btn" onClick={async () => {
+                                                await api.decide(found.user_code, false).catch(() => undefined);
+                                                setCodeMsg(`${found.name} was denied.`); setFound(null); setTyped('');
+                                            }}>Deny</button>
+                                        </div>
+                                    </div>
+                                )}
+                                {codeMsg && <p className="sub">{codeMsg}</p>}
+                            </>
+                        )}
                     </>
                 )}
                 {tab === 'account' && (
@@ -358,7 +440,7 @@ function Mobile({ s, refresh }: { s: UiState; refresh: () => void }) {
                             <div className="list-row"><span className="sub" style={{ width: 110 }}>Server</span><span className="mono ellipsis">{s.server_url}</span></div>
                         </div>
                         <button type="button" className="btn" onClick={() => s.server_url && openUrl(`${s.server_url}/files`)}>Open the web app</button>
-                        <button type="button" className="btn btn-d" onClick={async () => { await api.signOut(); refresh(); }}>Sign this phone out</button>
+                        <SignOutButton label="Sign this phone out" onDone={refresh} />
                     </>
                 )}
             </main>
@@ -390,6 +472,17 @@ export default function App() {
     }, [refresh]);
 
     if (!s) return <div className="center sub">Starting…</div>;
+    if (s.starting) {
+        return (
+            <div className="center">
+                <section className="panel narrow">
+                    <Brand />
+                    <p className="sub row"><span className="dot pulse" />Opening this {s.mobile ? 'phone' : 'device'}'s saved key…</p>
+                    <p className="sup">If your computer asks, allow CLASSETS to use its saved item in the keychain.</p>
+                </section>
+            </div>
+        );
+    }
     if (!s.configured || editing) return <Setup s={s} onDone={() => { setEditing(false); refresh(); }} />;
     if (!s.paired) return <Pair s={s} onPaired={refresh} onBack={() => setEditing(true)} />;
     return s.mobile ? <Mobile s={s} refresh={refresh} /> : <Desktop s={s} refresh={refresh} />;

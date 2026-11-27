@@ -19,6 +19,8 @@ struct AppState {
     engine: Mutex<Option<Arc<Engine>>>,
     stop: Mutex<Option<oneshot::Sender<()>>>,
     paused: AtomicBool,
+    /// True while a saved device is being reopened (the OS keychain may be asking first).
+    starting: AtomicBool,
     me: Mutex<Option<Me>>,
     log: Mutex<Vec<LogEntry>>,
     data_dir: std::sync::OnceLock<PathBuf>,
@@ -33,6 +35,7 @@ struct LogEntry {
 
 #[derive(Serialize)]
 struct UiState {
+    starting: bool,
     configured: bool,
     paired: bool,
     syncing: bool,
@@ -62,6 +65,11 @@ fn data_dir(state: &AppState) -> PathBuf {
 }
 
 fn make_engine(config: EngineConfig) -> Result<Engine, EngineError> {
+    // Unsigned local builds count as a new app on every rebuild, so the keychain asks again
+    // each time. `CLASSETS_SECRET_STORE=file` keeps the keys in a 0600 file in the data dir.
+    if std::env::var("CLASSETS_SECRET_STORE").as_deref() == Ok("file") {
+        return Engine::new(config);
+    }
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     {
         let store = classets_core::KeyringStore::new(format!("app.classets.desktop:{}", config.data_dir.display()));
@@ -103,11 +111,27 @@ async fn start_loop(app: &AppHandle, engine: Arc<Engine>) {
     let (tx, rx) = oneshot::channel::<()>();
     *stop = Some(tx);
     let app = app.clone();
+    // Background passes go to the window's activity list, same as "Sync now".
+    let (rtx, mut rrx) = tokio::sync::mpsc::unbounded_channel::<SyncReport>();
+    let log_app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        while let Some(r) = rrx.recv().await {
+            let state = log_app.state::<AppState>();
+            push_log(&state, describe(&r), r.errors.is_empty()).await;
+            for e in &r.errors {
+                push_log(&state, e.clone(), false).await;
+            }
+        }
+    });
     tauri::async_runtime::spawn(async move {
         let shutdown = async move {
             let _ = rx.await;
         };
-        let result = engine.run_loop(shutdown).await;
+        let result = engine
+            .run_loop(shutdown, move |r| {
+                let _ = rtx.send(r.clone());
+            })
+            .await;
         let state = app.state::<AppState>();
         *state.stop.lock().await = None;
         if let Err(e) = result {
@@ -137,15 +161,22 @@ async fn app_state(state: State<'_, AppState>, app: AppHandle) -> Result<UiState
     let home = app.path().home_dir().map_err(err)?;
     let default_root = if is_mobile() { data_dir(&state).join("files") } else { home.join("CLASSETS") };
     let host = gethostname::gethostname().to_string_lossy().trim_end_matches(".local").to_string();
+    // After a sign-out, offer the previous server and name again.
+    let last: serde_json::Value = std::fs::read(data_dir(&state).join("last.json"))
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default();
+    let last_str = |k: &str| last.get(k).and_then(|v| v.as_str()).map(str::to_string);
     Ok(UiState {
+        starting: state.starting.load(Ordering::SeqCst),
         configured: eng.is_some(),
         paired: eng.as_ref().map(|e| e.is_paired()).unwrap_or(false),
         syncing: state.stop.lock().await.is_some(),
         paused: state.paused.load(Ordering::SeqCst),
         os: std::env::consts::OS,
         mobile: is_mobile(),
-        server_url: eng.as_ref().map(|e| e.config().server_url.clone()),
-        device_name: eng.as_ref().map(|e| e.config().device_name.clone()),
+        server_url: eng.as_ref().map(|e| e.config().server_url.clone()).or_else(|| last_str("server_url")),
+        device_name: eng.as_ref().map(|e| e.config().device_name.clone()).or_else(|| last_str("device_name")),
         sync_root: eng.as_ref().map(|e| e.config().sync_root.display().to_string()),
         default_device_name: if is_mobile() { (if cfg!(target_os = "ios") { "iPhone" } else { "Android phone" }).to_string() } else { host },
         default_sync_root: default_root.display().to_string(),
@@ -285,6 +316,11 @@ async fn pending_pairings(state: State<'_, AppState>) -> Result<Vec<PendingPairi
 }
 
 #[tauri::command]
+async fn lookup_pairing(state: State<'_, AppState>, code: String) -> Result<PendingPairing, String> {
+    engine(&state).await?.api().map_err(err)?.lookup_pairing(&code).await.map_err(err)
+}
+
+#[tauri::command]
 async fn decide_pairing(state: State<'_, AppState>, code: String, approve: bool) -> Result<(), String> {
     let api = engine(&state).await?.api().map_err(err)?;
     if approve {
@@ -302,7 +338,13 @@ async fn sign_out(state: State<'_, AppState>) -> Result<(), String> {
         eng.sign_out().map_err(err)?;
     }
     *state.me.lock().await = None;
-    let _ = std::fs::remove_file(data_dir(&state).join("config.json"));
+    // Keep the server and name so pairing again only needs a tap; drop the rest.
+    let dir = data_dir(&state);
+    if let Ok(c) = EngineConfig::load(&dir) {
+        let last = serde_json::json!({ "server_url": c.server_url, "device_name": c.device_name });
+        let _ = std::fs::write(dir.join("last.json"), last.to_string());
+    }
+    let _ = std::fs::remove_file(dir.join("config.json"));
     Ok(())
 }
 
@@ -380,26 +422,36 @@ pub fn run() {
             let state = app.state::<AppState>();
             let _ = state.data_dir.set(dir.clone());
 
-            // Resume a configured device.
+            // Resume a configured device off the main thread: reading the device key from the
+            // OS keychain can wait on a system prompt, and the window must stay responsive.
             if let Ok(mut config) = EngineConfig::load(&dir) {
                 config.data_dir = dir.clone();
-                if let Ok(eng) = make_engine(config) {
-                    let eng = Arc::new(eng);
-                    let paired = eng.is_paired();
-                    let handle = app.handle().clone();
-                    tauri::async_runtime::block_on(async {
+                state.starting.store(true, Ordering::SeqCst);
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let made = tauri::async_runtime::spawn_blocking(move || {
+                        // Reads the saved secrets once here (they are then kept in memory).
+                        make_engine(config).inspect(|e| {
+                            let _ = e.is_paired();
+                        })
+                    })
+                    .await;
+                    let state = handle.state::<AppState>();
+                    if let Ok(Ok(eng)) = made {
+                        let eng = Arc::new(eng);
                         *state.engine.lock().await = Some(eng.clone());
-                    });
-                    if paired {
-                        tauri::async_runtime::spawn(async move {
-                            let state = handle.state::<AppState>();
+                        state.starting.store(false, Ordering::SeqCst);
+                        if eng.is_paired() {
                             if let Ok(api) = eng.api() {
                                 *state.me.lock().await = api.me().await.ok();
                             }
                             start_loop(&handle, eng).await;
-                        });
+                        }
+                    } else {
+                        state.starting.store(false, Ordering::SeqCst);
+                        push_log(&state, "Could not open this device's saved key.".into(), false).await;
                     }
-                }
+                });
             }
 
             #[cfg(desktop)]
@@ -429,6 +481,7 @@ pub fn run() {
             download_link,
             upload_bytes,
             pending_pairings,
+            lookup_pairing,
             decide_pairing,
             sign_out
         ])

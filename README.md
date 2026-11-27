@@ -43,6 +43,14 @@ pnpm tauri build        # installers for the current OS
 
 Run `classets-web` locally (`php artisan serve`), create an account, then start the app,
 enter `http://127.0.0.1:8000` as the server, and approve the code it shows at `/approve`.
+On macOS and Windows the app keeps its device key in the system keychain. An unsigned local
+build counts as a new app after every rebuild, so the keychain asks again each time; for local
+testing, start it with the keys in a file instead:
+
+```bash
+open --env CLASSETS_SECRET_STORE=file target/debug/bundle/macos/CLASSETS.app
+```
+
 Without the GUI, the dev CLI does the same:
 
 ```bash

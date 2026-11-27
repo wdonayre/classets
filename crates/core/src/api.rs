@@ -30,6 +30,9 @@ pub enum ApiError {
     /// `403`: no edit access.
     #[error("forbidden")]
     Forbidden,
+    /// `403 {"error":"quota_full"}`: the workspace's built-in storage is full; uploads wait.
+    #[error("storage full")]
+    StorageFull,
     /// `422 {"error":"mismatch"}`: stored object size/hash differ; upload again.
     #[error("uploaded object does not match size/hash")]
     Mismatch,
@@ -752,6 +755,7 @@ fn map_error(status: StatusCode, bytes: &[u8]) -> ApiError {
             wipe: body.and_then(|b| b.wipe).unwrap_or(false),
         },
         401 => ApiError::Unauthorized,
+        403 if error == "quota_full" => ApiError::StorageFull,
         403 => ApiError::Forbidden,
         409 => ApiError::Conflict {
             current_version_id: body.and_then(|b| b.current_version_id),
@@ -770,6 +774,17 @@ mod tests {
 
     #[test]
     fn maps_errors() {
+        assert!(matches!(
+            map_error(
+                StatusCode::FORBIDDEN,
+                br#"{"error":"quota_full","used":5,"limit":6}"#
+            ),
+            ApiError::StorageFull
+        ));
+        assert!(matches!(
+            map_error(StatusCode::FORBIDDEN, br#"{"error":"forbidden"}"#),
+            ApiError::Forbidden
+        ));
         assert!(matches!(
             map_error(
                 StatusCode::UNAUTHORIZED,

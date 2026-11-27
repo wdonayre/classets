@@ -752,6 +752,13 @@ impl Engine {
                     .push(format!("push {}: no edit access (skipped)", file.path));
                 Ok(())
             }
+            Err(ApiError::StorageFull) => {
+                report.errors.push(format!(
+                    "push {}: storage full, waiting (free space or use your own R2)",
+                    file.path
+                ));
+                Ok(())
+            }
             Err(e) => Err(e.into()),
         }
     }

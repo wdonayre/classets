@@ -87,13 +87,17 @@ The device wants to upload a new or changed file.
 ```
 `base_version_id` is the version the device last saw at that path (`null` for a new file).
 
-- `200 {"action":"done","version_id":89}` — the server already had these bytes; nothing to upload.
+- `200 {"action":"done","version_id":89}` — the server already had these bytes; nothing to upload
+  (it copies them inside the bucket).
 - `200 {"action":"upload","upload_id":"<uuid>","url":"…","method":"PUT","headers":{…},"expires_in":600}`
   — send the raw bytes with exactly that method and headers, then commit.
 - `409 {"error":"conflict","current_version_id":90}` — someone changed the file since
   `base_version_id`. Keep both: rename the local file to
   `{name} (conflict {DEVICE} {YYYY-MM-DD}){.ext}` and upload it as a new file.
 - `403 {"error":"forbidden"}` — no edit access to that folder.
+- `403 {"error":"quota_full","used":…,"limit":…}` — the workspace is on built-in storage and this
+  file would pass its limit. Keep the file queued and try again later (the owner can free space or
+  switch to their own R2). Not 409, so it is never mistaken for a conflict.
 - `422` — bad path (must sit inside a listed folder; no `..`, no leading `/`).
 
 ### `POST /files/commit` `{ "upload_id": "<uuid>" }`

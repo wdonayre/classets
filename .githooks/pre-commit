@@ -3,7 +3,7 @@
 # Enable once per clone:  git config core.hooksPath .githooks
 
 ALLOWED_NAME="wdonayre"
-ALLOWED_EMAILS="2247980+wdonayre@users.noreply.github.com wdonayredroid@gmail.com"
+ALLOWED_EMAILS="2247980+wdonayre@users.noreply.github.com"
 
 name="$(git config user.name)"
 email="$(git config user.email)"

@@ -13,7 +13,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     range="$remote_sha..$local_sha"
   fi
 
-  bad="$(git log --format='%H %an <%ae> | %cn <%ce>' "$range" | grep -viE '^[0-9a-f]+ wdonayre <(2247980\+wdonayre@users\.noreply\.github\.com|wdonayredroid@gmail\.com)> \| wdonayre <(2247980\+wdonayre@users\.noreply\.github\.com|wdonayredroid@gmail\.com)>$')"
+  bad="$(git log --format='%H %an <%ae> | %cn <%ce>' "$range" | grep -viE '^[0-9a-f]+ wdonayre <2247980\+wdonayre@users\.noreply\.github\.com> \| wdonayre <2247980\+wdonayre@users\.noreply\.github\.com>$')"
   if [ -n "$bad" ]; then
     echo "pre-push: these commits are not authored and committed by wdonayre:" >&2
     echo "$bad" >&2

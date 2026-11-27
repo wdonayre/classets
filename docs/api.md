@@ -1,4 +1,4 @@
-# CLASSETS sync API v1
+# Classets sync API v1
 
 The contract between the web app (`wdonayre/classets-web`) and the desktop and mobile apps
 (`wdonayre/classets`). Both repos keep a copy of this file; change both together.

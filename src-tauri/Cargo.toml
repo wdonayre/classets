@@ -1,6 +1,6 @@
 [package]
 name = "classets-desktop"
-description = "CLASSETS app: syncs files to your cloud and straight to your other devices"
+description = "Classets app: syncs files to your cloud and straight to your other devices"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

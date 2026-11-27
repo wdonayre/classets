@@ -1,4 +1,4 @@
-//! CLASSETS sync engine.
+//! Classets sync engine.
 //!
 //! Modules: [`crypto`] (device key, request signing), [`secrets`] (where keys and tokens
 //! live), [`api`] (signed client for `docs/api.md`), [`index`] (SQLite), [`scan`] (walk +

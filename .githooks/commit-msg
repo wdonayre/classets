@@ -1,5 +1,5 @@
 #!/bin/sh
-# CLASSETS attribution guard: no co-author or generated-by lines, no Claude/Anthropic or
+# Classets attribution guard: no co-author or generated-by lines, no Claude/Anthropic or
 # wdonayredilate mentions in commit messages.
 
 msg_file="$1"

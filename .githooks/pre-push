@@ -1,5 +1,5 @@
 #!/bin/sh
-# CLASSETS push guard: refuse to push any commit authored or committed by someone other
+# Classets push guard: refuse to push any commit authored or committed by someone other
 # than wdonayre, or carrying an attribution trailer.
 
 zero=0000000000000000000000000000000000000000

@@ -1,6 +1,6 @@
 [package]
 name = "classets-core"
-description = "CLASSETS sync engine: local index, change detection, transfers and direct sync"
+description = "Classets sync engine: local index, change detection, transfers and direct sync"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

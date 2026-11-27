@@ -1,8 +1,8 @@
-# CLASSETS
+# Classets
 
 Your files, on every device you trust.
 
-CLASSETS is a desktop app for **Windows, macOS and Linux** that syncs your files to your own
+Classets is a desktop app for **Windows, macOS and Linux** that syncs your files to your own
 Cloudflare R2 bucket, or straight to your other devices. A separate web app decides who can
 see which folder and which devices may hold it; this repo is the desktop app and its sync
 engine.
@@ -48,13 +48,13 @@ build counts as a new app after every rebuild, so the keychain asks again each t
 testing, start it with the keys in a file instead:
 
 ```bash
-open --env CLASSETS_SECRET_STORE=file target/debug/bundle/macos/CLASSETS.app
+open --env CLASSETS_SECRET_STORE=file target/debug/bundle/macos/Classets.app
 ```
 
 Without the GUI, the dev CLI does the same:
 
 ```bash
-cargo run -p classets-core --example classets_dev -- pair --server http://127.0.0.1:8000 --root ~/CLASSETS-test --data ~/.classets-test --name TEST-PC
+cargo run -p classets-core --example classets_dev -- pair --server http://127.0.0.1:8000 --root ~/Classets-test --data ~/.classets-test --name TEST-PC
 cargo run -p classets-core --example classets_dev -- sync --data ~/.classets-test
 ```
 

@@ -1,4 +1,4 @@
-//! CLASSETS app shell: wraps the `classets-core` engine in Tauri commands, runs the sync
+//! Classets app shell: wraps the `classets-core` engine in Tauri commands, runs the sync
 //! loop in the background, and (on desktop) lives in the system tray.
 
 use std::path::PathBuf;
@@ -159,7 +159,7 @@ async fn engine(state: &AppState) -> Result<Arc<Engine>, String> {
 async fn app_state(state: State<'_, AppState>, app: AppHandle) -> Result<UiState, String> {
     let eng = state.engine.lock().await.clone();
     let home = app.path().home_dir().map_err(err)?;
-    let default_root = if is_mobile() { data_dir(&state).join("files") } else { home.join("CLASSETS") };
+    let default_root = if is_mobile() { data_dir(&state).join("files") } else { home.join("Classets") };
     let host = gethostname::gethostname().to_string_lossy().trim_end_matches(".local").to_string();
     // After a sign-out, offer the previous server and name again.
     let last: serde_json::Value = std::fs::read(data_dir(&state).join("last.json"))
@@ -353,16 +353,16 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
     use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
     use tauri::tray::TrayIconBuilder;
 
-    let open = MenuItem::with_id(app, "open", "Open CLASSETS", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", "Open Classets", true, None::<&str>)?;
     let sync = MenuItem::with_id(app, "sync", "Sync now", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", "Pause / resume syncing", true, None::<&str>)?;
-    let folder = MenuItem::with_id(app, "folder", "Open CLASSETS folder", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit CLASSETS", true, None::<&str>)?;
+    let folder = MenuItem::with_id(app, "folder", "Open Classets folder", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit Classets", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &sync, &pause, &folder, &PredefinedMenuItem::separator(app)?, &quit])?;
 
     TrayIconBuilder::with_id("main")
         .icon(app.default_window_icon().cloned().expect("app icon"))
-        .tooltip("CLASSETS")
+        .tooltip("Classets")
         .menu(&menu)
         .on_menu_event(|app, event| {
             let app = app.clone();
@@ -459,7 +459,7 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Closing the window keeps CLASSETS syncing in the tray.
+            // Closing the window keeps Classets syncing in the tray.
             #[cfg(desktop)]
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
@@ -486,5 +486,5 @@ pub fn run() {
             sign_out
         ])
         .run(tauri::generate_context!())
-        .expect("error while running the CLASSETS app");
+        .expect("error while running the Classets app");
 }

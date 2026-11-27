@@ -18,7 +18,7 @@ function Brand() {
     return (
         <header className="brand">
             <Mark />
-            <span className="word">CLASSETS</span>
+            <span className="word">Classets</span>
         </header>
     );
 }
@@ -39,7 +39,7 @@ function Setup({ s, onDone }: { s: UiState; onDone: () => void }) {
                 <div>
                     <div className="eyebrow">Step 1 of 2</div>
                     <h1>Sign in this {s.mobile ? 'phone' : 'device'}</h1>
-                    <p className="sub">Your browser opens the CLASSETS sign-in. Your password is never typed into this app.</p>
+                    <p className="sub">Your browser opens the Classets sign-in. Your password is never typed into this app.</p>
                 </div>
                 <form
                     className="stack"
@@ -57,7 +57,7 @@ function Setup({ s, onDone }: { s: UiState; onDone: () => void }) {
                         }
                     }}
                 >
-                    <label className="lbl" htmlFor="server">CLASSETS server<input id="server" className="inp mono" value={server} onChange={(e) => setServer(e.target.value)} autoCapitalize="off" autoCorrect="off" spellCheck={false} /></label>
+                    <label className="lbl" htmlFor="server">Classets server<input id="server" className="inp mono" value={server} onChange={(e) => setServer(e.target.value)} autoCapitalize="off" autoCorrect="off" spellCheck={false} /></label>
                     <label className="lbl" htmlFor="name">Name of this {s.mobile ? 'phone' : 'device'}<input id="name" className="inp" value={name} onChange={(e) => setName(e.target.value)} autoCorrect="off" spellCheck={false} /></label>
                     {!s.mobile && (
                         <label className="lbl" htmlFor="root">
@@ -175,7 +175,7 @@ function SignOutButton({ label, onDone }: { label: string; onDone: () => void })
 /** Plain words for engine errors a person can act on. */
 function friendlyError(e: string): string {
     if (/unauthori[sz]ed/i.test(e)) return 'The server no longer accepts this device. Sign it out under Settings and pair it again.';
-    if (/error sending request|connect|dns|timed out/i.test(e)) return "Can't reach the CLASSETS server. Files will sync when it's back.";
+    if (/error sending request|connect|dns|timed out/i.test(e)) return "Can't reach the Classets server. Files will sync when it's back.";
     return e;
 }
 
@@ -265,7 +265,7 @@ function Desktop({ s, refresh }: { s: UiState; refresh: () => void }) {
                             <div className="list-row"><span className="sub" style={{ width: 140 }}>Sync folder</span><span className="mono">{s.sync_root}</span></div>
                             <div className="list-row"><span className="sub" style={{ width: 140 }}>Device ID</span><span className="mono">{s.status?.device_id}</span></div>
                         </div>
-                        <p className="sup">Closing the window keeps CLASSETS syncing in the tray. Use the tray menu to quit.</p>
+                        <p className="sup">Closing the window keeps Classets syncing in the tray. Use the tray menu to quit.</p>
                         <SignOutButton label="Sign this device out" onDone={refresh} />
                     </>
                 )}
@@ -323,7 +323,7 @@ function Mobile({ s, refresh }: { s: UiState; refresh: () => void }) {
         <div className="mobile">
             <header className="mtop">
                 <Mark size={24} />
-                <span className="word">CLASSETS</span>
+                <span className="word">Classets</span>
                 <span className="sup" style={{ marginLeft: 'auto' }}>{s.me?.workspace.name}</span>
             </header>
             <main className="mmain">
@@ -478,7 +478,7 @@ export default function App() {
                 <section className="panel narrow">
                     <Brand />
                     <p className="sub row"><span className="dot pulse" />Opening this {s.mobile ? 'phone' : 'device'}'s saved key…</p>
-                    <p className="sup">If your computer asks, allow CLASSETS to use its saved item in the keychain.</p>
+                    <p className="sup">If your computer asks, allow Classets to use its saved item in the keychain.</p>
                 </section>
             </div>
         );

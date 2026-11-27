@@ -1,5 +1,5 @@
 #!/bin/sh
-# CLASSETS identity guard: only the GitHub account `wdonayre` may author or commit here.
+# Classets identity guard: only the GitHub account `wdonayre` may author or commit here.
 # Enable once per clone:  git config core.hooksPath .githooks
 
 ALLOWED_NAME="wdonayre"

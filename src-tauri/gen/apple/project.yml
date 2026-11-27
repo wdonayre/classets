@@ -10,7 +10,7 @@ configs:
 settingGroups:
   app:
     base:
-      PRODUCT_NAME: CLASSETS
+      PRODUCT_NAME: Classets
       PRODUCT_BUNDLE_IDENTIFIER: app.classets.desktop
 targetTemplates:
   app:

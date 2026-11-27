@@ -1,4 +1,4 @@
-//! Client for the CLASSETS sync API v1 (`docs/api.md`).
+//! Client for the Classets sync API v1 (`docs/api.md`).
 //!
 //! Every endpoint except pairing is signed: `Authorization`, `X-Classets-Device`,
 //! `X-Classets-Timestamp` and `X-Classets-Signature` are added automatically.

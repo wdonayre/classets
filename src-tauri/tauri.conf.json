@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "CLASSETS",
+  "productName": "Classets",
   "version": "0.1.0",
   "identifier": "app.classets.desktop",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "CLASSETS",
+        "title": "Classets",
         "width": 1080,
         "height": 700,
         "minWidth": 720,

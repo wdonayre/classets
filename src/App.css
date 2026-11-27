@@ -1,4 +1,4 @@
-/* CLASSETS tokens (Astryx Core neutral + brand). Source of truth: the CLASSETS brand kit. */
+/* Classets tokens (Astryx Core neutral + brand). Source of truth: the Classets brand kit. */
 :root {
   --color-background-body: #f1f1f1;
   --color-background-surface: #ffffff;
@@ -74,7 +74,7 @@ h2 { margin: 4px 0 0; font-size: 16px; line-height: 22px; font-weight: 600; }
 .stack { display: flex; flex-direction: column; gap: 14px; }
 
 .brand { display: flex; align-items: center; gap: 10px; }
-.word { font-weight: 700; font-size: 16px; letter-spacing: .07em; }
+.word { font-weight: 700; font-size: 16px; letter-spacing: -.01em; }
 .mark-tile { fill: var(--brand-ink); }
 .mark-c { fill: none; stroke: var(--on-brand-ink); stroke-width: 6; stroke-linecap: round; }
 .mark-dot { fill: var(--on-brand-ink); }

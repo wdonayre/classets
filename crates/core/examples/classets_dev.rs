@@ -1,4 +1,4 @@
-//! Dev CLI for the CLASSETS sync engine.
+//! Dev CLI for the Classets sync engine.
 //!
 //! ```text
 //! cargo run -p classets-core --example classets_dev -- pair  --server URL --root DIR --data DIR --name NAME
@@ -15,7 +15,7 @@ use clap::{Parser, Subcommand};
 use classets_core::{Engine, EngineConfig, PairStatus};
 
 #[derive(Parser)]
-#[command(name = "classets_dev", about = "CLASSETS sync engine dev tool")]
+#[command(name = "classets_dev", about = "Classets sync engine dev tool")]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
